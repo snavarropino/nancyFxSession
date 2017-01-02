@@ -77,7 +77,7 @@ namespace NancyApi
             });
 
             Before += ctx =>
-            {
+            {                
                 //Return null or response object
                 (ctx as NancyContext).Items["timestamp"] = DateTime.UtcNow;
                 return null;
