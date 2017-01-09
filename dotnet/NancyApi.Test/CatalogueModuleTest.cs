@@ -6,13 +6,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
+using System;
 
 namespace NancyApi.Test
 {
     public class CatalogueModuleTest
     {
         [Fact]
-        public async void TestingOneModule_when_getProducts_then_receiveProducts_Case1()
+        public async void TestingCatalogueModule_when_getProducts_then_receiveProducts_Case1()
         {
             // Given          
             IProductsCatalogue pc = new ProductsCatalogue();
@@ -29,7 +30,7 @@ namespace NancyApi.Test
         }
 
         [Fact]
-        public async void TestingOneModule_when_getProducts_then_receiveProducts_Case2()
+        public async void TestingCatalogueModule_when_getProducts_then_receiveProducts_Case2()
         {
             // Given
             var browser = new Browser(new DefaultNancyBootstrapper());
@@ -45,7 +46,7 @@ namespace NancyApi.Test
         }
 
         [Fact]
-        public async void TestingOneModule_when_getProducts_then_receiveProducts_Case3()
+        public async void TestingCatalogueModule_when_getProducts_then_receiveProducts_Case3()
         {
             // Given
             var m = new Mock <IProductsCatalogue>();
@@ -79,7 +80,7 @@ namespace NancyApi.Test
         }
 
         [Fact]
-        public async void TestingOneModule_when_postProducts_then_productAdded()
+        public async void TestingCatalogueModule_when_postProducts_then_productAdded()
         {
             // Given           
             var browser = new Browser(new DefaultNancyBootstrapper());
@@ -107,7 +108,52 @@ namespace NancyApi.Test
             // Then
             Assert.Equal(HttpStatusCode.OK, result.StatusCode);
             Assert.True(productList.Any(a => a.Name == "Mahou Clasica"));
+        }
 
+        [Fact]
+        public async void TestingCatalogueModule_when_getUI_then_listRendered()
+        {
+            // Given
+            var m = new Mock<IProductsCatalogue>();
+            m.Setup<IList<Product>>(a => a.GetProducts(null)).Returns(new List<Product>()
+            {
+                new Product() { Id=1, Name="Estrella" ,Stock=1000 }
+            });
+
+            var bootstrapper = new ConfigurableBootstrapper(with =>
+            {
+                with.Module<UIModule>();
+                with.Dependencies(m.Object);
+                with.RootPathProvider(new CustomRootProv());
+                with.ViewFactory<TestingViewFactory>();
+            });
+
+            var browser = new Browser(bootstrapper);
+
+            // When
+            var result = await browser.Get("/UI", with => {
+                with.HttpRequest();
+            });
+
+            // Then
+            Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+
+            var body = result.Body.AsString();
+            result.Body["#item1"].ShouldExistOnce();
+
+            var module = result.GetModuleName();
+            var modelo = result.GetModel<List<Product>>();
+
+            Assert.True(modelo.Count == 1);
+            
+        }
+    }
+
+    public class CustomRootProv : IRootPathProvider
+    {
+        public string GetRootPath()
+        {
+            return "./../NancyApi/";
         }
     }
 }
